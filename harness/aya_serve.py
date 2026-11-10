@@ -16,12 +16,15 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE)); sys.path.insert(0, str(HERE.parent.parent / "vendor/SafeTune/src"))
 try:
-    from steervecs import steer_vectors  # noqa: E402   (SafeTune dial: not included, see PRIVATE_SLOTS.md)
+    from steervecs import steer_vectors  # noqa: E402   (SafeTune dial vectors)
 except ImportError:
     steer_vectors = None
-from safetune.interventions.steer.caa import CAAModel  # noqa: E402
+def _caa():
+    """SafeTune is imported only when a request asks for steering (pip install safetune, or vendor/SafeTune/src)."""
+    from safetune.interventions.steer.caa import CAAModel
+    return CAAModel
 
-KEEPALIVE = pathlib.Path("/workspace/state/keepalive")
+KEEPALIVE = pathlib.Path("/workspace/state/keepalive")   # rig-only idle watchdog; harmless elsewhere
 LOCK = threading.Lock()
 
 
@@ -97,7 +100,7 @@ def main():
                         key = tuple(st)
                         if key not in VEC_CACHE:
                             VEC_CACHE[key] = {L: v.to(model.device) for L, v in steer_vectors(*key).items()}
-                        with CAAModel(model, VEC_CACHE[key], strength=1.0):
+                        with _caa()(model, VEC_CACHE[key], strength=1.0):
                             r = gen(tok, model, req["convs"], req.get("max_new", 400), req.get("batch_size", 16))
                     else:
                         r = gen(tok, model, req["convs"], req.get("max_new", 400), req.get("batch_size", 16))

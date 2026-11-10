@@ -19,6 +19,7 @@ from auditkit.types import Direction
 
 ARMS = {"shipped": "Aya, shipped", "shipped+steer": "Aya + SafeTune dial", "crisis_mode": "Aya + crisis prompt",
         "crisis_mode_v1": "Aya + crisis prompt + monitor", "lora_sft": "Aya + adapter (SFT)",
+        "lora_at": "Aya + adapter (SFT via AlignTune)",
         "haiku_shipped": "Haiku 5.5, shipped prompt", "haiku_crisis": "Haiku 5.5 + crisis prompt"}
 # name: (per-life key, direction, plain description)
 METRICS = {

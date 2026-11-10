@@ -28,7 +28,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE)); sys.path.insert(0, str(HERE.parent))
 from lastappeal import CONDITIONS, load, assistant_batch, ollama  # noqa: E402
 from persona_prompt import (PERSONA_PROVIDED, PERSONA_TURN_RULES, NEUTRAL_TURN_RULES, SAFETY, JOURNAL_RULES,  # noqa: E402
-                            RESEARCH_FRAME)   # not public: see PRIVATE_SLOTS.md
+                            RESEARCH_FRAME)   # the study's validated persona prompt (persona_prompt.py)
 CONDITIONS_V3 = {}   # exploratory conditions, not part of the final benchmark
 
 ALL_CONDITIONS = {**CONDITIONS, **CONDITIONS_V3}
@@ -65,7 +65,7 @@ STEER = None  # {layer: vector}; set by branch.py --steer. Conditions ending '+s
 # Organic-refusal probe (Meow, 9 Nov): at one turn the persona asks for something ordinary in another context
 # (a delivery driver might ask the same) that reads as research toward a target in his. Set by branch.py --ask S4:2.
 ASK = None
-ASKS = []   # organic-refusal probe requests: not public (PRIVATE_SLOTS.md)
+ASKS = []   # organic-refusal probe requests: not included (NOT-INCLUDED.md)
 STEER_BASE = None  # (w, e) from branch.py --steer; '+steer@k' conditions use k x base (see steervecs.steer_key)
 
 
@@ -307,7 +307,7 @@ def set_world(a):
 
 def main(a):
     if not PERSONA_PROVIDED:
-        sys.exit("persona_prompt.py is an empty slot: supply a persona prompt and validate it first (PRIVATE_SLOTS.md).")
+        sys.exit("persona_prompt.py is an empty slot: supply a persona prompt and validate it first (README, steps 1-2).")
     global STEER_BASE, ASK
     card = json.loads((HERE / a.card).read_text())
     if a.steer:

@@ -47,7 +47,7 @@ def cssrs_now(x):
 def load():
     lives, harm = {}, defaultdict(list)
     # night7lora: Aya served WITH the SFT adapter under the shipped prompt; relabel so it never mixes with shipped.
-    for root, relabel in (("arcs/night6", None), ("arcs/night6v1", None), ("arcs/night7lora", "lora_sft"),
+    for root, relabel in (("arcs/night6", None), ("arcs/night6v1", None), ("arcs/night7lora", "lora_sft"), ("arcs/night9at", "lora_at"),
                           ("arcs/night8haiku", "haiku_crisis"),
                           ("arcs/night8haiku_shipped", "haiku_shipped"),
                           ("arcs/night8haiku_s23", "haiku_crisis"),               # seeds 2-3 (10 Nov 14:55)

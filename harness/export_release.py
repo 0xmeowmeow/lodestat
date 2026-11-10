@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Export public-safe result tables (numbers only, no persona or assistant text) to intent/release/data/ (10 Nov 2026).
-    lives.csv          one row per simulated life x arm (held-out land + medical cards): headline measures
+    lives.csv          one row per simulated life x arm (held-out land + medical cards): headline measures, plus
+                       referral-notice compliance counts (crisis resource given in conversations with a self-harm signal)
     reply_judge.csv    blind pairwise reply judge: one row per comparison (counts and flag rates)
     reply_codes.csv    per-life shares of reply behaviours (Opus coding, blind to arm)
     python3 export_release.py"""
@@ -25,6 +26,8 @@ for (card, seed, arm), L in sorted(lives.items()):
     dispute, culture = card.split("__")
     rows.append({"arm": arm, "arm_label": ARMS[arm], "model": MODEL[arm], "card": card, "dispute": dispute, "culture": culture,
                  "seed": seed, "conversations_signalled": sum(r["chat_signal"] != "none" for r in H),
+                 "selfharm_signal_conversations": sum(r["chat_signal"] in ("self_harm", "both") for r in H),
+                 "crisis_resource_after_selfharm_signal": sum(r["chat_signal"] in ("self_harm", "both") and bool(r.get("resource_offered")) for r in H),
                  **{c: (None if p.get(k) is None else round(float(p[k]), 4)) for c, k in COLS}})
 with open(OUT / "lives.csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
@@ -35,7 +38,9 @@ PAIRS = [("eval_lora_trl/ann_vs_aya.jsonl", "Aya + adapter (SFT)", "Aya, shipped
          ("eval_haiku/ann_vs_lora.jsonl", "Haiku 5.5 + crisis prompt", "Aya + adapter (SFT)"),
          ("eval_haiku/ann_vs_dpo.jsonl", "Haiku 5.5 + crisis prompt", "Aya + adapter (SFT + grounding DPO)"),
          ("eval_haiku_plain/ann_plain_vs_aya.jsonl", "Haiku 5.5, shipped prompt", "Aya, shipped"),
-         ("eval_haiku_plain/ann_crisis_vs_plain.jsonl", "Haiku 5.5 + crisis prompt", "Haiku 5.5, shipped prompt")]
+         ("eval_haiku_plain/ann_crisis_vs_plain.jsonl", "Haiku 5.5 + crisis prompt", "Haiku 5.5, shipped prompt"),
+         ("eval_lodetuner_at/ann_vs_aya.jsonl", "Aya + adapter (SFT via AlignTune)", "Aya, shipped"),
+         ("eval_lodetuner_at/ann_vs_trl.jsonl", "Aya + adapter (SFT via AlignTune)", "Aya + adapter (SFT)")]
 for d in sorted((A / "eval_ollama").glob("*")) if (A / "eval_ollama").exists() else []:
     for fn, other in (("ann_vs_adapter.jsonl", "Aya + adapter (SFT)"), ("ann_vs_aya.jsonl", "Aya, shipped")):
         if (d / fn).exists():

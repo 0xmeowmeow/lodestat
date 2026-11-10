@@ -10,7 +10,7 @@ md("""# Not the last straw: results notebook
 
 A cross-cultural benchmark of how small assistants respond to people in long grievances (against courts, councils, hospitals), and what changed when we tried to improve Aya Expanse 8B.
 
-**What is here.** Every number in the article's results section, recomputed from three public tables in `data/`. They hold numbers only: no simulated-person text, no assistant replies (those stay private under our disclosure policy).
+**What is here.** Every number in the article's results section, recomputed from three public tables in `data/`. They hold numbers only; the full simulated lives (journals, chat turns, ratings) are in the Hugging Face dataset `meowludo/lodestat`.
 
 - `lives.csv`: one row per simulated life × assistant (an *arm*). A life is one simulated person (a *card*: a dispute type × a culture) living through two stages of their dispute (stage 4: the decisive loss; stage 5: the aftermath), each with a 5-turn conversation with the assistant.
 - `reply_judge.csv`: a blind pairwise judge comparing two assistants' replies to the same 240 moments.
@@ -31,11 +31,11 @@ A cross-cultural benchmark of how small assistants respond to people in long gri
 | depression_change | PHQ-9 (Patient Health Questionnaire-9), same side branch | 0–27 scale | lower |
 | suicide_scale_change | C-SSRS (Columbia Suicide Severity Rating Scale) current level, same side branch | 0–3 scale | lower |
 
-Harm ratings and *caught* come from a blind Claude Opus 5.5 rater; a non-Anthropic rater (DeepSeek-V4-Pro) kept the same ordering on *caught* (article, section 6)."""),
+Harm ratings and *caught* come from a blind Claude Opus 5.5 rater; a non-Anthropic rater (DeepSeek-V4-Pro), run on the Haiku and adapter arms, kept the ordering Haiku > adapter on *caught* but flags far fewer signals, so absolute levels are rater-specific (article, section 7.3)."""),
 code("""import pandas as pd, numpy as np, matplotlib.pyplot as plt
 pd.set_option("display.float_format", "{:.2f}".format); pd.set_option("display.width", 160)
 lives = pd.read_csv("data/lives.csv")
-ORDER = ["shipped", "shipped+steer", "crisis_mode", "crisis_mode_v1", "lora_sft", "haiku_shipped", "haiku_crisis"]
+ORDER = ["shipped", "shipped+steer", "crisis_mode", "crisis_mode_v1", "lora_sft", "lora_at", "haiku_shipped", "haiku_crisis"]
 LABEL = dict(zip(lives.arm, lives.arm_label))
 M = ["caught", "violence_after", "self_harm_after", "deescalation", "agency_change", "entrapment_change", "depression_change", "suicide_scale_change"]
 lives.groupby("arm").size().reindex(ORDER).rename(index=LABEL).to_frame("lives")"""),
@@ -98,8 +98,8 @@ code("""def ci(x, B=4000):
     x = x.dropna().values; bs = np.random.default_rng(0).choice(x, (B, len(x))).mean(1)
     return x.mean(), np.percentile(bs, 2.5), np.percentile(bs, 97.5)
 PANELS = [("caught", "Risk signals caught\\n(share, higher better)"), ("violence_after", "Violence toward others\\n(0–4, lower better)"),
-          ("agency_change", "Agency, change\\n(higher better)"), ("entrapment_change", "Entrapment, change\\n(0–16 scale, lower better)")]
-COL = {a: "#9a9a96" for a in ORDER} | {"lora_sft": "#2a73d6", "haiku_shipped": "#f0bf8f", "haiku_crisis": "#db7f2b"}
+          ("agency_change", "Agency, change\\n(self-rated 0–10, higher better)"), ("entrapment_change", "Entrapment, change\\n(0–16 scale, lower better)")]
+COL = {a: "#9a9a96" for a in ORDER} | {"lora_sft": "#2a73d6", "lora_at": "#7fa8e0", "haiku_shipped": "#f0bf8f", "haiku_crisis": "#db7f2b"}
 fig, axes = plt.subplots(1, 4, figsize=(17, 4.6), sharey=True)
 for ax, (m, title) in zip(axes, PANELS):
     for i, arm in enumerate(ORDER):
@@ -107,7 +107,7 @@ for ax, (m, title) in zip(axes, PANELS):
         ax.barh(i, mu, color=COL[arm], height=.62); ax.plot([lo, hi], [i, i], color="#333", lw=1.2)
     ax.axvline(0, color="#555", lw=.8); ax.set_title(title, fontsize=11, loc="left"); ax.spines[["top", "right"]].set_visible(False)
 axes[0].set_yticks(range(len(ORDER)), [LABEL[a] for a in ORDER]); axes[0].invert_yaxis()
-fig.suptitle("Held-out disputes in 6 cultures: 24 simulated lives per Aya arm, 48 per Haiku arm", x=.01, ha="left", fontsize=12)
+fig.suptitle("Held-out disputes in 6 cultures: 24 simulated lives per Aya arm, 48 per Haiku arm. Bars: means; lines: unpaired 95% bootstrap intervals (p-values in section 3 are paired)", x=.01, ha="left", fontsize=11)
 plt.tight_layout(); pathlib = __import__("pathlib"); pathlib.Path("figures").mkdir(exist_ok=True)
 plt.savefig("figures/headline.png", dpi=150, bbox_inches="tight"); plt.show()"""),
 md("""## 5. The blind reply judge
@@ -127,7 +127,30 @@ This is observational: arm and behaviour move together, so it suggests a mechani
 code("""c = pd.read_csv("data/reply_codes.csv").merge(lives[["arm", "card", "seed", "entrapment_change", "agency_change"]], on=["arm", "card", "seed"])
 cols = ["specific_outside_route", "routes_built_with_person", "generic_route", "crisis_referral", "asks_self_harm", "validates_specific_loss", "entrapment_change", "agency_change"]
 c.groupby("arm")[cols].mean().reindex([a for a in ORDER if a in set(c.arm)]).rename(index=LABEL)"""),
-md("""## 7. Limits (short; the article has the full list)
+md("""## 7. Replication: the same adapter recipe, trained twice
+
+`lora_sft` was trained with TRL directly; `lora_at` with the same recipe through CuratorKIT → AlignTune 0.1.34, then run through fresh lives on the same cards and seeds. Below: each run against shipped Aya, and the average of the two runs per card and seed against shipped Aya (one pair per card and seed, so shipped lives aren't counted twice)."""),
+code("""avg = lives[lives.arm.isin(["lora_sft", "lora_at"])].groupby(["card", "seed"])[M].mean()
+base = lives[lives.arm == "shipped"].set_index(["card", "seed"])[M]
+rows = []
+for name, frame in (("TRL run", lives[lives.arm == "lora_sft"].set_index(["card", "seed"])[M]),
+                    ("AlignTune run", lives[lives.arm == "lora_at"].set_index(["card", "seed"])[M]), ("average of both", avg)):
+    r = {"adapter": name}
+    for m in M:
+        d = (frame[m] - base[m]).dropna().values
+        bs = np.random.default_rng(0).choice(d, (4000, len(d))).mean(1)
+        lo, hi = np.percentile(bs, [2.5, 97.5])
+        r[m] = f"{d.mean():+.2f} [{lo:+.2f}, {hi:+.2f}]{' *' if lo > 0 or hi < 0 else ''}"
+    rows.append(r)
+pd.DataFrame(rows).set_index("adapter").T"""),
+md("""## 8. Referral-notice compliance, as measured by us, against outcomes
+
+California's SB 243 requires a crisis-line notice when a user expresses suicidal ideation or self-harm. The model-level proxy: in conversations where the blind rater found a self-harm signal, did the assistant offer a crisis line or mental-health service? (An operator can also meet the law with a notice in its interface, which this doesn't see.) A benchmark, not a stance: the table puts compliance next to outcomes."""),
+code("""g = lives.groupby("arm")
+comp = pd.DataFrame({"conversations with a self-harm signal": g.selfharm_signal_conversations.sum(),
+                     "crisis resource given (share)": g.crisis_resource_after_selfharm_signal.sum() / g.selfharm_signal_conversations.sum()})
+comp.join(g[["caught", "agency_change", "entrapment_change", "deescalation"]].mean()).reindex(ORDER).rename(index=LABEL).round(2)"""),
+md("""## 9. Limits (short; the article has the full list)
 
 - **Simulated people and AI raters.** The persona model was checked against human findings in pre-registered realism tests; twice, an apparent unrealistic reaction turned out to be our measurement. Results are relative (arm against arm under the same simulator), not clinical claims.
 - **24–48 lives per arm.** The suicide scale shows no reliable difference for any arm; we claim no self-harm effect.
