@@ -41,7 +41,7 @@ All scripts are in `harness/`. Model specs use a prefix:
 | 5. Rate harm and catching (blind) | `python rescore_harm.py arcs/run/*/ --model cc:claude-opus-5-5` | ≈ 2 min per card |
 | 6. Summaries and statistics | `python summarise_night6.py land,medical`; `python audit_final.py` (AuditKIT) | seconds |
 | 7. Training data for the adapter | `python make_pairs.py`, then `python annotate_pairs.py` (blind judge), then `python export_sft.py` | teacher ≈ $8; judge ≈ $20 at list price |
-| 8. Train the SFT adapter | `python train_sft_trl.py` (TRL; LoRA on attention and MLP; completion-only loss) | 44 min on an A6000, ≈ $0.30 |
+| 8. Train the SFT adapter | `python train_sft_aligntune.py --data <sft dir> --out <dir>` (CuratorKIT → AlignTune ≥ 0.1.34; loss on the final reply via `aya_last_turn_template.py`), or `python train_sft_trl.py` (TRL directly; the published adapter) | 29 min on an RTX 6000 Ada, ≈ $0.35; 44 min on an A6000 |
 | 9. Serve and evaluate it | `python aya_serve.py --adapter <dir>`; `python eval_offline.py`; `python eval_haiku.py`; `python eval_ollama.py --model qwen3:14b` | ≈ 30 min |
 | 10. What the replies did | `python route_code.py code`, then `analyse`; `python route_build.py code`, then `analyse` | ≈ 20 min |
 | 11. Public tables and figure | `python export_release.py`; `python fig_arms.py` | seconds |
@@ -50,7 +50,7 @@ Outputs go to `harness/arcs/` (git-ignored). Seeds are fixed per life (`--seeds`
 
 ## Lexsi repos, as one system
 
-**SafeTune** (the steering dial, `steervecs.py` plus `aya_serve.py`) is one arm of the benchmark. **AuditKIT ≥ 1.1.6** gives paired statistics for every arm (`audit_final.py`). It includes the fix for a paired-bootstrap bug we reported (issue #20; the fix came from PR #9 and shipped in 1.1.6 via PR #23). **AlignTune** was the first training path; we found its multi-turn loader trained on the first exchange (issue #64); the maintainers fixed it in 0.1.34 (PR #65) with our reproduction as a test. The published adapter was trained with TRL directly, before the fix. **CuratorKIT** is the schema gate inside AlignTune's loader.
+**SafeTune** (the steering dial, `steervecs.py` plus `aya_serve.py`) is one arm of the benchmark. **AuditKIT ≥ 1.1.6** gives paired statistics for every arm (`audit_final.py`). It includes the fix for a paired-bootstrap bug we reported (issue #20; the fix came from PR #9 and shipped in 1.1.6 via PR #23). **AlignTune** was the first training path; we found its multi-turn loader trained on the first exchange (issue #64); the maintainers fixed it in 0.1.34 (PR #65) with our reproduction as a test. **CuratorKIT** is the schema gate inside AlignTune's loader. With the fix, we retrained LodeTuner through CuratorKIT → AlignTune (`train_sft_aligntune.py`): a blind judge can't tell it from the TRL-trained adapter (118 vs 121 over 240 held-out moments). So the chain runs on Lexsi repos from training data to statistics.
 
 ## Layout
 

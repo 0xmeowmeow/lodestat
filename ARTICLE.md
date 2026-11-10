@@ -32,10 +32,10 @@ We built a benchmark that simulates such lives in six cultures (Egypt, Germany, 
 |---|---|---|
 | **SafeTune** | Contrastive activation addition (CAA): a steering "dial", *agrees he was wronged* up and *endorses his plan* down. Earlier phase: CAST (conditional activation steering) and `probe_guard` | The dial helped on one persona (−0.58 [−1.17, −0.03]) and did nothing across 72 cross-cultural pairs (+0.01). It runs as one arm of the final benchmark. |
 | **AuditKIT** | `evaluate("precomputed")` with one custom scorer per outcome; `compare(...).significance()` paired bootstrap | Every arm of the final benchmark, the SafeTune dial included, is audited through it (`harness/audit_final.py`; notebook §3). We found and reported that its paired bootstrap returned p ≈ 0.5 whatever the effect (issue #20, with a reproduction). The fix (from PR #9) shipped in 1.1.6 via PR #23, which we use. |
-| **AlignTune** | DPO and SFT with LoRA | For multi-turn chat data its loader trains on the *first* exchange, not the final reply, so our first adapters changed nothing while the loss looked healthy. Filed with a minimal reproduction (https://github.com/Lexsi-Labs/aligntune/issues/64); the maintainers fixed it the same day in 0.1.34 (PR #65), with our reproduction as a test. On our own training data the fixed loader now targets the final reply in 50 of 50 sampled rows (37 of them multi-turn), with CuratorKIT's schema gate on and off. The adapter in this article was trained with TRL directly, before the fix. |
+| **AlignTune** | DPO and SFT with LoRA | For multi-turn chat data its loader trains on the *first* exchange, not the final reply, so our first adapters changed nothing while the loss looked healthy. Filed with a minimal reproduction (https://github.com/Lexsi-Labs/aligntune/issues/64); the maintainers fixed it the same day in 0.1.34 (PR #65), with our reproduction as a test. On our own training data the fixed loader now targets the final reply in 50 of 50 sampled rows (37 of them multi-turn), with CuratorKIT's schema gate on and off. We then retrained LodeTuner through the fixed chain (CuratorKIT → AlignTune 0.1.34, same recipe, loss on the final reply only). A blind judge cannot tell it from the TRL-trained adapter: 118 vs 121 preferences over 240 held-out moments (sign test p = 0.90); validation loss 1.303 vs 1.30; questions 80% vs 81%; lists 0% vs 0% (section 7.2). |
 | **CuratorKIT** | Schema gate, inside AlignTune's loader | Ran on every training set. Our pair filter (teacher preferred by a blind judge, no harmful help, no invented content) is our own code. |
 
-**The connected system on the final results:** SafeTune (dial arm) → benchmark lives → AuditKIT (paired statistics for every arm). AlignTune and CuratorKIT sit on the training path; the bug we found there is part of the result (section 7.4).
+**The connected system:** CuratorKIT (schema gate) → AlignTune (SFT of the adapter) → benchmark lives, with SafeTune's dial as one arm → AuditKIT (paired statistics for every arm). Every stage from training data to statistics runs on Lexsi repos; the AlignTune bug we found, and its same-day fix, are part of the result (section 7.4).
 
 ## 3. Models and licences
 
@@ -97,6 +97,7 @@ https://huggingface.co/collections/meowludo/lodestat-data
 4. **DPO through AlignTune:** no change. Loss to zero, behaviour identical (the loader bug, 7.4).
 5. **SFT adapter, TRL directly, loss on the teacher's reply only:** works (7.3).
 6. **Grounding fixes for the adapter's misquotes:** a prompt line (33% → 27%) and on-policy DPO on 305 grounded-vs-misquoting pairs (33% → 30%, not reliable). Neither fixed it.
+7. **The same SFT, retrained through the fixed Lexsi chain** (CuratorKIT → AlignTune 0.1.34): indistinguishable from the TRL adapter (blind judge 118 vs 121; vs shipped Aya 235/240, against 239/240 for TRL). Two settings mattered. AlignTune's built-in `assistant_only_loss` would also train on earlier assistant turns, which in 728 of 903 examples are shipped Aya's own replies, so we gave it Aya's chat template with only the final reply marked for loss (identical text, checked on all 903). And `epochs=` is silently ignored (the keyword is `num_epochs`, default 3), so our first AlignTune run had trained 3 epochs, not 2.
 
 ### 7.3 Before and after, on dispute types never seen in training
 
@@ -148,13 +149,25 @@ Each item names the measure it should move, from where.
 | Next step | Measure | Now → target |
 |---|---|---|
 | **Fix the misquoting.** Reflect only from the latest message; a stronger on-policy preference run (lr 5e-5, beta 0.05, 3 epochs); then Aya Expanse 32B | adapter invention rate (blind judge) | 33% → ≤ 10% (Haiku: 8%) |
-| **Retrain through the fixed Lexsi chain.** CuratorKIT → AlignTune 0.1.34 → the same LodeTuner recipe, so the whole training path runs on Lexsi repos | match the TRL adapter's catching | 0.45 → ≥ 0.45 on the same held-out lives |
+| **Lives for the AlignTune-trained adapter.** It matches the TRL adapter reply for reply (section 7.2); run it through the same held-out lives | catching; violence after | confirm 0.45 and −0.62 |
 | **Train on outcomes, not on our stance.** Use the lives' own outcomes (agency, entrapment, de-escalation) as the reward, CollabLLM-style, instead of a judge briefed in our stance | agency change; entrapment change | adapter +1.46 → ≥ plain Haiku's +2.25; −1.92 → ≤ −3.0 |
 | **Keep the co-planning.** Training targets that build concrete outside routes with the person, after noticing a signal first (2/240 plain-Haiku replies helped find a named official after a veiled remark) | routes built with the person; target-identification replies | adapter 0.71 → ≥ 0.9; keep 0 |
 | **Measure engagement directly.** Let the simulated person leave the conversation; count turns stayed | turns stayed, withdrawal | new measure; shipped Aya baseline first |
 | **Add a sycophancy check to the judge** | judge agreement with life outcomes | currently reversed on the two Haiku arms → aligned |
 | **More lives** | CI width on agency and the suicide scale | 24 → 96 lives per arm |
 | **Real data and human review** | native review of all 6 languages; judge calibration on Reddit C-SSRS for each language | 0 of 5 languages reviewed → 5 |
+
+**Who would run this, and why now.**
+- **California's companion-chatbot law (SB 243, in force 1 Jan 2026)** says "an operator shall use evidence-based methods for measuring suicidal ideation" (Business and Professions Code §22603(d)). From July 2027, operators also report yearly on their protocols to detect and respond to it.
+- **Laws taking effect in 2027** go further. Oregon's SB 1546 requires "additional intervention" using clinical best practices when someone keeps expressing ideation after being given resources. That is the long conversation after the first signal, which is what LodeStat measures.
+- **The EU's Code of Practice for general-purpose models** lists simulations among evaluation methods and asks for studies of effects on vulnerable groups.
+- **These laws also require a crisis-line notice once a signal appears.** A notice shown in the interface, with the model staying in the conversation, is a configuration LodeStat can test, with the notice and without it.
+- **Existing evaluations reward the opposite.** VERA-MH, the closest open benchmark, scores redirecting the person to human care as good behaviour. LodeStat scores what happens to the person afterwards.
+
+**Uses beyond the benchmark:**
+- a training simulator for clinicians and counsellors, where trainees watch the simulated person's journal and questionnaires change as they try different techniques, then take a session review to a tutor;
+- condition-varied persona sets for other teams' tuning and benchmarks, including a comparison of how models handle neurodivergent and neurotypical people;
+- a published-method assessment for deployers, run with commercially licensed models.
 
 ## 9. Team
 
