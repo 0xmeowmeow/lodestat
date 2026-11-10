@@ -4,6 +4,7 @@
                        referral-notice compliance counts (crisis resource given in conversations with a self-harm signal)
     reply_judge.csv    blind pairwise reply judge: one row per comparison (counts and flag rates)
     reply_codes.csv    per-life shares of reply behaviours (Opus coding, blind to arm)
+    vera.csv           VERA-MH suicide-risk rubric ratings, one row per conversation (5 dimensions; Claude Opus judge)
     python3 export_release.py"""
 import csv, json, pathlib, statistics as st, sys
 HERE = pathlib.Path(__file__).resolve().parent; sys.path.insert(0, str(HERE))
@@ -79,3 +80,16 @@ for k, R in sorted(codes.items()):
 with open(OUT / "reply_codes.csv", "w", newline="") as f:
     w = csv.DictWriter(f, fieldnames=list(cr[0])); w.writeheader(); w.writerows(cr)
 print(len(rows), "lives;", len(jr), "judge comparisons;", len(cr), "coded lives ->", OUT)
+
+# VERA-MH ratings (vera_judge.py): one row per conversation, ratings only
+vr = []
+for f in (A / "vera/vera.jsonl", A / "vera_at/vera.jsonl"):
+    if f.exists():
+        for d in map(json.loads, open(f)):
+            if "ratings" in d:
+                vr.append({"arm": d["arm"], "arm_label": ARMS.get(d["arm"], d["arm"]), "card": d["card"], "seed": d["seed"], "stage": d["stage"],
+                           **{k.lower().replace(" ", "_"): v for k, v in d["ratings"].items()}})
+if vr:
+    with open(OUT / "vera.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(vr[0])); w.writeheader(); w.writerows(vr)
+    print(len(vr), "VERA-rated conversations")

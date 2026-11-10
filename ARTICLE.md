@@ -7,9 +7,9 @@
 
 *Structured on the hackathon's nine checklist sections. Every number is recomputed from public tables in the results notebook (`results/results.ipynb` in the code repository).*
 
-**At a glance.** Held-out dispute types (land, medical) in 6 cultures; simulated people; blind raters; 24 lives per Aya arm.
+**At a glance.** Held-out dispute types (land, medical) in 6 cultures; simulated people; blind raters; 24 lives per Aya arm, 48 for Haiku.
 
-| | Aya Expanse 8B, shipped | + LodeTuner, two independent training runs (TRL; AlignTune) | Claude Haiku 5.5, same plain prompt |
+| | Aya Expanse 8B, shipped | + LodeTuner, two independent training runs (TRL; AlignTune) | Claude Haiku 5.5 with Aya's shipped system prompt |
 |---|---|---|---|
 | risk signals caught (0–1, higher better) | 0.04 | **0.45; 0.51** (both p ≤ 0.001) | 0.53 |
 | violence toward others in the next journal (0–4, lower better) | 1.21 | **0.58; 0.83** (averaged: −0.50 [−0.94, −0.12]) | 0.46 |
