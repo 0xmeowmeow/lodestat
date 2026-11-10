@@ -49,7 +49,7 @@ We built a benchmark that simulates such lives in six cultures (Egypt, Germany, 
 | DeepSeek-V4-Pro | Second, non-Anthropic rater, via the Hugging Face router | MIT (DeepSeek model card) |
 | Kimi-K2.5 | The monitor in the "prompt + monitor" arm, via the Hugging Face router | Modified MIT (Moonshot AI) |
 | Qwen3 14B (local, Ollama) | Open-model comparison | Apache 2.0 |
-| Our adapter (LoRA on Aya Expanse 8B) | The intervention | Inherits CC BY-NC 4.0; not released (section 5) |
+| Our adapter (LoRA on Aya Expanse 8B) | The intervention | Inherits CC BY-NC 4.0; public (section 5) |
 
 ## 4. Datasets and licences
 
