@@ -1,0 +1,5 @@
+harness/arcs/
+harness/instrument_items.json
+data/external/
+__pycache__/
+.ipynb_checkpoints/
