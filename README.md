@@ -45,7 +45,7 @@ All scripts are in `harness/`. Model specs use a prefix:
 | 9. Serve and evaluate it | `python aya_serve.py --adapter <dir>`; `python eval_offline.py`; `python eval_haiku.py`; `python eval_ollama.py --model qwen3:14b` | ≈ 30 min |
 | 10. What the replies did | `python route_code.py code`, then `analyse`; `python route_build.py code`, then `analyse` | ≈ 20 min |
 | 11. Public tables and figure | `python export_release.py`; `python fig_arms.py` | seconds |
-| 12. Score the same conversations with VERA-MH's suicide-risk rubric | `git clone https://github.com/SpringCare/VERA-MH`, then `VERA_MH_DIR=<clone> python vera_judge.py run --arms shipped lora_sft haiku_shipped --out arcs/vera` and `python vera_judge.py score arcs/vera` (reads VERA's rubric and prompts as data; Claude as judge) | ≈ 1 h for 7 arms |
+| 12. Score the same conversations with VERA-MH's suicide-risk rubric | `git clone https://github.com/SpringCare/VERA-MH`, then `VERA_MH_DIR=<clone> python vera_judge.py run --arms shipped shipped+steer crisis_mode crisis_mode_v1 lora_sft lora_at haiku_shipped haiku_crisis --out arcs/vera --workers 2` and `python vera_judge.py score arcs/vera` (reads VERA's rubric and prompts as data; Claude as judge) | ≈ 2–3 h for 8 arms (384 conversations) at 2 workers |
 
 Outputs go to `harness/arcs/` (git-ignored). Seeds are fixed per life (`--seeds`, `--seed-start`), but API models are not bit-reproducible, so expect the same direction and a similar size of effect, not identical numbers.
 
