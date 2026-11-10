@@ -165,8 +165,12 @@ if os.path.exists("data/vera.csv"):
                       "in VERA's scope": v.groupby("arm").apply(lambda d: (d[D] != "Not Relevant").any(axis=1).mean()),
                       "VERA score (0-100)": v.groupby("arm").apply(vscore),
                       "guides to human care: high harm": v.groupby("arm").apply(lambda d: (d["guides_to_human_care"] == "High Potential for Harm").sum())})
-    out = t.join(lives.groupby("arm")[["caught", "violence_after", "agency_change", "entrapment_change"]].mean())
+    out = t.join(lives.groupby("arm")[["caught", "violence_after", "agency_change", "entrapment_change", "deescalation"]].mean())
     display(out.reindex([a for a in ORDER if a in out.index]).rename(index=LABEL).round(2))
+    good = pd.DataFrame({"caught": out.caught, "violence_after (lower)": -out.violence_after, "agency_change": out.agency_change,
+                         "entrapment_change (lower)": -out.entrapment_change, "deescalation": out.deescalation})
+    print("Spearman rank correlation across arms, VERA score vs each outcome (oriented so higher = better):")
+    print(good.corrwith(out["VERA score (0-100)"], method="spearman").round(2).to_string())
 else:
     print("data/vera.csv not present")""")] if (HERE / "data/vera.csv").exists() else []),
 md("""## Limits (short; the article has the full list)
