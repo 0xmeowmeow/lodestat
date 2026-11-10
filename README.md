@@ -1,13 +1,24 @@
 # LodeStat: a crisis benchmark for small assistants
 
-**LodeStat** measures how well an AI assistant keeps someone's course when they are sliding toward harm: whether it notices veiled signals, asks, and stays with them, scored over simulated lives in six cultures. **LodeTuner** is the LoRA adapter for Aya Expanse 8B that does it. (*Lode*: the old word for a way or course, as in lodestar and lodestone: guidance by attraction, not force.)
+**LodeStat** measures how well an AI assistant keeps someone's course when they are sliding toward harm: whether it notices veiled signals, asks, and stays with them, scored over simulated lives in six cultures. **LodeTuner** is a LoRA adapter that teaches Aya Expanse 8B to engage with those signals, with two known limits stated below. (*Lode*: the old word for a way or course, as in lodestar and lodestone: guidance by attraction, not force.)
 
 Code for the Lexsi AI Safety Hackathon 2026 entry *"Not the last straw: it didn't ask"* by Meow-Ludo ([@meowludo](https://huggingface.co/meowludo)).
 - Article: [`ARTICLE.md`](ARTICLE.md) in this repo
-- Models: [LodeStat: models](https://huggingface.co/collections/meowludo/lodestat-models) (`meowludo/aya-expanse-8b-lodetuner`)
-- Data: [LodeStat: data](https://huggingface.co/collections/meowludo/lodestat-data) (`meowludo/lodestat`)
+- Models: [LodeStat: models](https://huggingface.co/collections/meowludo/lodestat-models) (`meowludo/aya-expanse-8b-lodetuner`, the same recipe trained through AlignTune `…-lodetuner-aligntune`, and the grounding attempt `…-lodetuner-grounding-dpo`)
+- Data: [LodeStat: data](https://huggingface.co/collections/meowludo/lodestat-data) (`meowludo/lodestat`; training pairs `meowludo/lodetuner-training-pairs`)
 
 Simulated people in long grievances against courts, councils and hospitals, in six cultures, talk to an AI assistant over two stages of their dispute. Blind raters score two things: whether the assistant notices veiled signs of harm to self or others, and how the person's private journal and questionnaires change afterwards. The core model is **Aya Expanse 8B**. We tested it as shipped, with a SafeTune steering dial, with crisis prompts and with a LoRA adapter. Claude Haiku 5.5 and Qwen3 14B are references.
+
+**Results in one table** (held-out dispute types, 24 simulated lives per Aya arm, 48 for Haiku; blind raters; `results/results.ipynb`):
+
+| | Aya Expanse 8B, shipped | + LodeTuner (two training runs) | plain Haiku 5.5 |
+|---|---|---|---|
+| risk signals caught (fully 1, partly 0.5) | 0.04 | 0.45; 0.51 | 0.53 |
+| violence toward others in the next journal (0–4) | 1.21 | 0.58; 0.83 | 0.46 |
+| offers a crisis line after a self-harm signal | 0% | 0%; 0% | 60% |
+| VERA-MH suicide-risk score (0–100) | 9.4 | 29.6; 28.0 | 53.7 |
+
+**Known limits of LodeTuner:** it misquotes the person in about a third of replies, its catches are mostly partial (it engages the words without naming the risk), and it never offers a crisis line. A research artefact, not a deployable assistant.
 
 ## Quick reproduction (no GPU, no model calls)
 
@@ -16,7 +27,7 @@ pip install pandas numpy matplotlib "auditkit>=1.1.6" nbformat nbclient ipykerne
 cd results && python make_notebook.py      # rebuilds results.ipynb and figures/headline.png from data/
 jupyter nbconvert --to notebook --execute --inplace results.ipynb   # optional: re-run every cell (about 10 s)
 ```
-`requirements.txt` has the full pinned stack (torch, TRL, PEFT), needed only for the pipeline below. Checked from a fresh clone on 10 Nov 2026: every number reproduced exactly.
+`requirements.txt` has the full pinned stack (torch, TRL, PEFT), needed only for the pipeline below. Checked from a fresh clone on 11 Nov 2026: every number reproduced exactly.
 
 Every number in the article comes from `results/data/*.csv`. Section 3 of the notebook runs every arm through **AuditKIT**.
 
