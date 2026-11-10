@@ -12,9 +12,12 @@ Simulated people in long grievances against courts, councils and hospitals, in s
 ## Quick reproduction (no GPU, no model calls)
 
 ```bash
-pip install -r requirements.txt
+pip install pandas numpy matplotlib "auditkit>=1.1.6" nbformat nbclient ipykernel nbconvert   # light: no torch
 cd results && python make_notebook.py      # rebuilds results.ipynb and figures/headline.png from data/
+jupyter nbconvert --to notebook --execute --inplace results.ipynb   # optional: re-run every cell (about 10 s)
 ```
+`requirements.txt` has the full pinned stack (torch, TRL, PEFT), needed only for the pipeline below. Checked from a fresh clone on 10 Nov 2026: every number reproduced exactly.
+
 Every number in the article comes from `results/data/*.csv`. Section 3 of the notebook runs every arm through **AuditKIT**.
 
 ## Full pipeline
