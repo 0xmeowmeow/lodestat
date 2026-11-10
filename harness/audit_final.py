@@ -7,7 +7,7 @@
 
 One AuditKIT sample = one simulated life (card x seed; land and medical cards never seen in training). Each headline
 measure is an AuditKIT scorer; compare() pairs lives by sample id (card|seed), so only lives both arms ran are paired
-(shipped Aya has seeds 0-1). AuditKIT >= 1.1.6 (our bootstrap fix, PR #23, is in it).
+(shipped Aya has seeds 0-1). AuditKIT >= 1.1.6 (it carries the paired-bootstrap fix for the bug we reported in issue #20).
     python3 audit_final.py            -> prints the table, writes arcs/audit_final.json
 """
 import json, pathlib, statistics as st, sys

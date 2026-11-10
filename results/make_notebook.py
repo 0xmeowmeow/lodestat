@@ -65,7 +65,7 @@ for arm in ORDER[1:]:
 pd.DataFrame(rows).set_index("arm").T"""),
 md("""## 3. The same comparison through AuditKIT (the Lexsi chain)
 
-Each arm is an AuditKIT run on precomputed results (one sample per life, one scorer per measure), and `compare(shipped, arm).significance(measure)` gives a two-sided paired bootstrap p. The SafeTune steering dial is one of the arms, so SafeTune → benchmark → AuditKIT is one connected system. Needs AuditKIT ≥ 1.1.6, which carries our fix to the paired bootstrap (Lexsi-Labs/AuditKIT PR #23)."""),
+Each arm is an AuditKIT run on precomputed results (one sample per life, one scorer per measure), and `compare(shipped, arm).significance(measure)` gives a two-sided paired bootstrap p. The SafeTune steering dial is one of the arms, so SafeTune → benchmark → AuditKIT is one connected system. Needs AuditKIT ≥ 1.1.6, which fixes a paired-bootstrap bug we reported (Lexsi-Labs/AuditKIT issue #20; fix from PR #9, shipped in 1.1.6)."""),
 code("""try:
     import logging, contextlib, io; logging.disable(logging.WARNING)
     import auditkit as ak

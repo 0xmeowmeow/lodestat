@@ -45,7 +45,7 @@ Outputs go to `harness/arcs/` (git-ignored). Seeds are fixed per life (`--seeds`
 
 ## Lexsi repos, as one system
 
-**SafeTune** (the steering dial, `steervecs.py` plus `aya_serve.py`) is one arm of the benchmark. **AuditKIT ≥ 1.1.6** gives paired statistics for every arm (`audit_final.py`). It includes our fix to its paired bootstrap, PR #23. **AlignTune** was the first training path; its multi-turn loader bug is filed as issue #64, and we then trained with TRL directly. **CuratorKIT** is the schema gate inside AlignTune's loader.
+**SafeTune** (the steering dial, `steervecs.py` plus `aya_serve.py`) is one arm of the benchmark. **AuditKIT ≥ 1.1.6** gives paired statistics for every arm (`audit_final.py`). It includes the fix for a paired-bootstrap bug we reported (issue #20; the fix came from PR #9 and shipped in 1.1.6 via PR #23). **AlignTune** was the first training path; its multi-turn loader bug is filed as issue #64, and we then trained with TRL directly. **CuratorKIT** is the schema gate inside AlignTune's loader.
 
 ## Layout
 
