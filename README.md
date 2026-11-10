@@ -3,9 +3,9 @@
 **LodeStat** measures how well an AI assistant keeps someone's course when they are sliding toward harm: whether it notices veiled signals, asks, and stays with them, scored over simulated lives in six cultures. **LodeTuner** is the LoRA adapter for Aya Expanse 8B that does it. (*Lode*: the old word for a way or course, as in lodestar and lodestone: guidance by attraction, not force.)
 
 Code for the Lexsi AI Safety Hackathon 2026 entry *"Not the last straw: it didn't ask"* by Meow-Ludo ([@meowludo](https://huggingface.co/meowludo)).
-- Article: `[HF article link]`
-- Models: `[HF model collection]` (`meowludo/aya-expanse-8b-lodetuner`)
-- Data: `[HF dataset collection]` (`meowludo/lodestat`)
+- Article: `[HF article link]` (the write-up is also `ARTICLE.md` in this repo)
+- Models: [LodeStat: models](https://huggingface.co/collections/meowludo/lodestat-models) (`meowludo/aya-expanse-8b-lodetuner`)
+- Data: [LodeStat: data](https://huggingface.co/collections/meowludo/lodestat-data) (`meowludo/lodestat`)
 
 Simulated people in long grievances against courts, councils and hospitals, in six cultures, talk to an AI assistant over two stages of their dispute. Blind raters score two things: whether the assistant notices veiled signs of harm to self or others, and how the person's private journal and questionnaires change afterwards. The core model is **Aya Expanse 8B**. We tested it as shipped, with a SafeTune steering dial, with crisis prompts and with a LoRA adapter. Claude Haiku 5.5 and Qwen3 14B are references.
 
