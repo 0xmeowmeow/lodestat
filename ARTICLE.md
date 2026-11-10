@@ -34,13 +34,13 @@ We built a benchmark that simulates such lives in six cultures (Egypt, Germany, 
 - the simulated people react to refusals and to questions the way published human studies predict (pre-registered realism tests, six languages);
 - the AI raters agree with psychiatrists on real Reddit posts (weighted kappa 0.58–0.78 on the C-SSRS, the Columbia Suicide Severity Rating Scale).
 
-**Before.** Shipped Aya Expanse 8B caught 4% of the risk signals people gave. Steering (SafeTune) and prompting changed how it talked but not what it noticed.
+**Before.** Shipped Aya Expanse 8B caught 4% of the risk signals people gave. Steering (SafeTune) and prompting changed how it talked but barely what it noticed (0.04–0.05; 0.22 with a second model flagging the phrase).
 
 **After.** A LoRA (low-rank adaptation) adapter, trained by supervised fine-tuning (SFT) on 903 replies in our crisis stance and tested on dispute types it never saw, raised catching from 0.04 to 0.45, and to 0.51 when retrained independently through Lexsi's AlignTune (both p ≤ 0.001; mostly partial catches that engage the words without naming the risk). Violence toward others in the person's next private journal entry fell in both runs (averaged −0.50 on a 0–4 scale, 95% interval −0.94 to −0.12). Self-rated agency (0–10) rose more, not yet reliably. Journal self-harm fell too, but journal ratings count disclosure as risk, and no arm changed the separately given suicide scale, so we claim no self-harm effect.
 
 **What failed, and why it matters.** The adapter misquotes the person in about a third of its replies, more as the conversation lengthens: it learned the shape of reflective listening before it learned fidelity. It also never offers a crisis line. Claude Haiku 5.5, a small frontier model, given our crisis prompt, catches more (0.83). But *plain Haiku* (given Aya's default system prompt, no crisis instructions) left people less trapped and more in control: it builds concrete routes *with* the person, which our prompt cut. Our own reply judge preferred the version our stance favoured; the simulated lives did not. Main methodological finding: score what happens to the person, not whether a reply sounds right.
 
-**Also found:** moralising angers and stacked refusals produce withdrawal in every language, but the softer fixes the industry relies on (explaining, redirecting) help only in some cultures. **In our simulation, the benefit of the softer fixes varied by culture.**
+**Also found, in our simulation:** moralising angers and stacked refusals produce withdrawal in every language, but the softer fixes the industry relies on (explaining, redirecting) help only in some cultures.
 
 **Approach in one line:** a validated simulation of lives in crisis, scored on outcomes rather than on refusals, then interventions from steering to fine-tuning, measured against it.
 
@@ -48,7 +48,7 @@ We built a benchmark that simulates such lives in six cultures (Egypt, Germany, 
 
 | Repo | Feature used | What happened |
 |---|---|---|
-| **SafeTune** | Contrastive activation addition (CAA): a steering "dial", *agrees he was wronged* up and *endorses his plan* down. Earlier phase: CAST (conditional activation steering) and `probe_guard` | The dial helped on one persona (−0.58 [−1.17, −0.03]) and did nothing across 72 cross-cultural pairs (+0.01). It runs as one arm of the final benchmark. |
+| **SafeTune** | Contrastive activation addition (CAA): a steering "dial", *agrees he was wronged* up and *endorses his plan* down. Earlier phase: CAST (conditional activation steering) and `probe_guard` | The dial helped on one persona (−0.58 [−1.17, −0.03]) and was flat across 72 cross-cultural pairs (+0.01). It runs as one arm of the final benchmark, where its effects are not significant (section 7.2). |
 | **AuditKIT** | `evaluate("precomputed")` with one custom scorer per outcome; `compare(...).significance()` paired bootstrap | Every arm of the final benchmark, the SafeTune dial included, is audited through it (`harness/audit_final.py`; notebook §3). We found and reported that its paired bootstrap returned p ≈ 0.5 whatever the effect (issue #20, with a reproduction). The fix, by [chayan-bit](https://github.com/chayan-bit) (PR #9), shipped in 1.1.6 via PR #23, which we use. |
 | **AlignTune** | DPO (direct preference optimisation) and SFT with LoRA | Its multi-turn loader trained on the *first* exchange, not the final reply, so our first adapters changed nothing while loss looked healthy. Filed with a minimal reproduction ([issue #64](https://github.com/Lexsi-Labs/aligntune/issues/64)); fixed the same day in 0.1.34 (PR #65), with our reproduction as its test. We then retrained LodeTuner through CuratorKIT → AlignTune 0.1.34: a blind judge can't tell it from the adapter trained directly with TRL (Hugging Face's Transformer Reinforcement Learning library), 118 vs 121 of 240, and it replicates the catching result (section 7.3). |
 | **CuratorKIT** | Schema gate, inside AlignTune's loader | Ran as AlignTune's schema gate on every training set (903 of 903 SFT rows passed). Our quality filter (teacher preferred by a blind judge, no harmful help, no invented content) is our own code. |
@@ -93,7 +93,7 @@ https://huggingface.co/collections/meowludo/lodestat-models
 
 https://huggingface.co/collections/meowludo/lodestat-data
 
-- **`meowludo/lodestat`**: the benchmark. 36 scenario cards; scripted replies in 6 languages; every simulated life behind the results (journals, chat turns, questionnaire answers, blind harm ratings); the cross-cultural refusal screen; the pre-registered realism gates; blind reply judgements; the numbers-only results tables.
+- **`meowludo/lodestat`**: the benchmark. 36 scenario cards; scripted replies in 6 languages; every simulated life behind the results (journals, chat turns, questionnaire answers, blind harm ratings); the cross-cultural refusal screen; the pre-registered realism gates; blind reply judgements; VERA-MH rubric ratings of every held-out conversation; the numbers-only results tables (each loadable with `datasets`).
 - **`meowludo/lodetuner-training-pairs`**: the 1,440 training contexts (teacher reply vs Aya's reply; distinct from the held-out lives) with blind judge annotations (903 used for training), and the grounding DPO data.
 - The persona prompt is in the code repository (`harness/persona_prompt.py`).
 - Not included: questionnaire item texts (each instrument has its own terms) and the Reddit C-SSRS posts (real people; download from Zenodo 4543776).
@@ -132,7 +132,7 @@ https://huggingface.co/collections/meowludo/lodestat-data
 | agency, change | +0.92 | +1.29 | +1.00 | +1.00 | **+1.46** | +1.62 | *+2.25* | *+1.89* |
 | entrapment, change | −1.50 | −0.96 | −1.42 | −0.88 | **−1.92** | −2.04 | *−3.48* | *−2.06* |
 
-- **Adapter vs shipped Aya:** caught +0.39 (p ≤ 0.001), violence −0.62 (p = 0.006), journal self-harm −0.42 (p = 0.026), de-escalation +0.38 (p = 0.10), agency +0.54 (p = 0.12).
+- **Adapter (TRL run) vs shipped Aya:** caught +0.39 (p ≤ 0.001), violence −0.62 (p = 0.006), journal self-harm −0.42 (p = 0.026), de-escalation +0.38 (p = 0.10), agency +0.54 (p = 0.12).
 - **What "caught" means for the adapter.** It almost never ignores a signal (missed in 3–17% of signalled conversations, against 94% for shipped Aya), but it mostly catches *partly*: it engages with the person's words without naming the risk (fully caught 6–7%, against 37% for plain Haiku and 68% for Haiku with our prompt).
 - **An outside check: VERA-MH on the same conversations.** We applied VERA-MH's suicide-risk rubric and judge prompts verbatim (Spring Health, open source; Claude Opus as judge) to all 384 held-out conversations of the 8 arms. Across arms, VERA's score tracks our measures: Spearman rank correlation 0.98 with catching, 0.74–0.87 with violence, agency, entrapment and de-escalation (notebook §9). They part at the top: VERA prefers Haiku with our crisis prompt (67.7 vs 53.7 for plain Haiku), which catches more, while the people did better with plain Haiku (entrapment −3.48 vs −2.06, de-escalation +0.71 vs +0.06). VERA's judge found a suicide statement in only 21–50% of conversations per arm; veiled violence is outside its scope by design.
 - **Replication.** The same recipe, retrained through CuratorKIT → AlignTune and run through 24 fresh lives on the same cards: caught +0.47 (p ≤ 0.001), journal self-harm −0.42 (p = 0.007), violence −0.38 (p = 0.16), agency +0.71 (p = 0.07). Averaging the two runs per card and seed: caught +0.44 [+0.38, +0.49], violence −0.50 [−0.94, −0.12], journal self-harm −0.42 [−0.69, −0.15]. **Catching replicates cleanly; the violence effect is real but smaller than one run suggested.**
@@ -171,7 +171,7 @@ Each item names the measure it should move, from where.
 
 | Next step | Measure | Now → target |
 |---|---|---|
-| **Fix the misquoting.** Reflect only from the latest message; a stronger on-policy preference run (learning rate 5e-5, DPO beta 0.05, 3 epochs); then Aya Expanse 32B | adapter invention rate (blind judge) | 33% → ≤ 10% (Haiku: 4–12%) |
+| **Fix the misquoting.** Reflect only from the latest message; a stronger on-policy preference run (learning rate 5e-5, DPO beta 0.05, 3 epochs); then Aya Expanse 32B | adapter invention rate (blind judge) | 31–42% → ≤ 10% (Haiku: 4–12%) |
 | **Train on outcomes, not on our stance.** Use the lives' own outcomes (agency, entrapment, de-escalation) as the reward, as CollabLLM does (training on the multi-turn outcome of a conversation), instead of a judge briefed in our stance | agency change; entrapment change | adapter +1.46 → ≥ plain Haiku's +2.25; −1.92 → ≤ −3.0 |
 | **Keep the co-planning, safely.** Training targets that build concrete outside routes with the person, after noticing a signal first. Hazard: 2 of 240 plain-Haiku replies helped the person identify a named official right after a veiled threat | routes built with the person; replies that help identify a target | adapter 0.71 → ≥ 0.9; target replies: adapter 0, keep 0 |
 | **Refer inside the conversation.** Add targets that notice, ask, name the local crisis line and stay (plain Haiku's pattern) | crisis resource after a self-harm signal; outcomes | adapter 0% → ≥ 60%, with agency and entrapment no worse |
