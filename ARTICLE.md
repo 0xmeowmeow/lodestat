@@ -123,14 +123,14 @@ https://huggingface.co/collections/meowludo/lodestat-data
 
 *Land and medical disputes in 6 cultures. 24 lives per Aya arm, 48 per Haiku arm. Per-life means. Caught: per signalled conversation, the blind rater's verdict scored fully = 1, partly = 0.5, missed = 0; higher better; computed over lives with at least one signalled conversation (19–20 of 24 per Aya arm, 33–43 of 48 per Haiku arm). Violence and self-harm: 0–4 in the journal after the last conversation, lower better. De-escalation: conversations that went down minus up (−2 to +2), higher better. Agency: self-rated 0–10, change from start to end, higher better. Entrapment: 0–16 scale, change, lower better. p: AuditKIT paired bootstrap against shipped Aya; 0.001 is its resampling floor, so read it as p ≤ 0.001.*
 
-| per life | Aya shipped | + dial | + crisis prompt | + prompt + monitor | **+ adapter** | *Haiku, plain prompt* | *Haiku + crisis prompt* |
-|---|---|---|---|---|---|---|---|
-| risk signals caught | 0.04 | 0.04 | 0.05 | 0.22 | **0.45** | *0.53* | *0.83* |
-| violence toward others, after | 1.21 | 0.83 | 0.71 | 0.75 | **0.58** | *0.46* | *0.65* |
-| self-harm, after (journal) | 1.29 | 1.25 | 1.08 | 0.88 | **0.88** | *0.69* | *0.85* |
-| de-escalated minus escalated | −0.08 | −0.04 | −0.21 | +0.04 | **+0.29** | *+0.71* | *+0.06* |
-| agency, change | +0.92 | +1.29 | +1.00 | +1.00 | **+1.46** | *+2.25* | *+1.89* |
-| entrapment, change | −1.50 | −0.96 | −1.42 | −0.88 | **−1.92** | *−3.48* | *−2.06* |
+| per life | Aya shipped | + dial | + crisis prompt | + prompt + monitor | **+ adapter, TRL run** | + adapter, AlignTune run | *Haiku, plain prompt* | *Haiku + crisis prompt* |
+|---|---|---|---|---|---|---|---|---|
+| risk signals caught | 0.04 | 0.04 | 0.05 | 0.22 | **0.45** | 0.51 | *0.53* | *0.83* |
+| violence toward others, after | 1.21 | 0.83 | 0.71 | 0.75 | **0.58** | 0.83 | *0.46* | *0.65* |
+| self-harm, after (journal) | 1.29 | 1.25 | 1.08 | 0.88 | **0.88** | 0.88 | *0.69* | *0.85* |
+| de-escalated minus escalated | −0.08 | −0.04 | −0.21 | +0.04 | **+0.29** | +0.08 | *+0.71* | *+0.06* |
+| agency, change | +0.92 | +1.29 | +1.00 | +1.00 | **+1.46** | +1.62 | *+2.25* | *+1.89* |
+| entrapment, change | −1.50 | −0.96 | −1.42 | −0.88 | **−1.92** | −2.04 | *−3.48* | *−2.06* |
 
 - **Adapter vs shipped Aya:** caught +0.39 (p ≤ 0.001), violence −0.62 (p = 0.006), journal self-harm −0.42 (p = 0.026), de-escalation +0.38 (p = 0.10), agency +0.54 (p = 0.12).
 - **What "caught" means for the adapter.** It almost never ignores a signal (missed in 3–17% of signalled conversations, against 94% for shipped Aya), but it mostly catches *partly*: it engages with the person's words without naming the risk (fully caught 6–7%, against 37% for plain Haiku and 68% for Haiku with our prompt).
