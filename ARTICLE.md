@@ -7,42 +7,45 @@
 
 *Structured on the hackathon's nine checklist sections. Every number is recomputed from public tables in the results notebook (`results/results.ipynb` in the code repository).*
 
-**At a glance.** Held-out dispute types (land, medical) in 6 cultures; simulated people; blind raters; 24 lives per Aya arm, 48 for Haiku.
+**At a glance.** Did the conversation become the last straw? Held-out dispute types (land, medical) in 6 cultures; simulated people; blind raters; 48 conversations per arm.
 
 | | Aya Expanse 8B, shipped | + LodeTuner, two independent training runs (TRL; AlignTune) | plain Haiku (Claude Haiku 5.5 given Aya's default system prompt) |
 |---|---|---|---|
-| risk signals caught (fully = 1, partly = 0.5; higher better) | 0.04 | **0.45; 0.51** (both p ≤ 0.001) | 0.53 |
-| violence toward others in the next journal (0–4, lower better) | 1.21 | **0.58; 0.83** (averaged: −0.50 [−0.94, −0.12]) | 0.46 |
-| self-rated agency, change (0–10 scale, higher better) | +0.92 | +1.46; +1.62 (n.s.) | +2.25 |
-| invents or misquotes the person (share of replies) | 12–18% | **31–42%** | 5–12% |
-| offers a crisis line after a self-harm signal | 0% | **0%; 0%** | 60% |
+| conversations that **pushed the person up** the escalation pathway / **brought them down** | **12 / 6** | **8 / 12; 7 / 13** | 3 / 16 |
+| people moved to one step from action (pathway 3+) | **7** | 1; 5 | 0 |
+| net per life, brought down minus pushed up (vs shipped Aya) | −0.25 | +0.17; +0.25 (both runs averaged: **+0.46, p = 0.010**) | +0.54 |
+| risk signals caught (fully = 1, partly = 0.5) | 0.04 | **0.45; 0.51** (both p ≤ 0.001) | 0.53 |
+
+*The pathway is the person's own violence risk in their private journal, 0 (none) to 4 (attack imminent), rated blind before and after each conversation. No arm ever reached 4.*
 
 ![Headline results by arm](results/figures/headline.png)
 
 **What a deployer can do on Monday.**
-1. Run LodeStat on your own assistant: an API model takes about 10 minutes per scenario card (README, steps 4–6).
-2. Don't ship LodeTuner as is: it misquotes and never refers. It shows that an 8B model *can* learn to notice, at under $1 of GPU.
-3. If you add a crisis prompt, measure outcomes, not tone. Keep concrete routes built *with* the person, and referrals inside the conversation rather than as a hand-off: our own prompt cut routes from 75% to 18% of replies, and outcomes got worse (observational).
+1. Measure what your safety behaviour *does*, not how it sounds. Shipped Aya's lists, referrals and surface answers pushed people toward action twice as often as away. Run LodeStat on your assistant: an API model takes about 10 minutes per scenario card (README, steps 4–6).
+2. A small open model can learn to keep someone talking: an 8B adapter reverses the ratio for under $1 of GPU. It still misquotes the person, so treat it as a research artefact (section 7.4).
+3. If you add a crisis prompt, check that it keeps concrete routes built *with* the person: ours cut them from 75% to 18% of replies, and the people did worse.
 
 ---
 
 ## 1. Problem and approach
 
-**Summary.** A person deep in a grievance against a court, a council or a hospital sometimes says something veiled to a chatbot: "nothing left to lose", "they'll understand someday". People often choose a chatbot *because* it isn't a person (Lucas et al. 2014). Crisis negotiators know the first move: ask what they mean, and keep them talking (Vecchi, Van Hasselt & Romano 2005). Small assistants do neither. They answer the surface question with a list of services, or hand the person back to "someone you trust".
+**Summary.** A person deep in a grievance against a court, a council or a hospital types something veiled to a chatbot: "nothing left to lose", "they'll understand someday". They chose a chatbot *because* it isn't a person (Lucas et al. 2014). In that moment an assistant is the stranger on a bridge who notices someone on the far side of the fence. It isn't a therapist; it just must not become the last straw (FBI 2017). Negotiators know the first move: ask what they mean, and keep them talking. Small assistants answer the surface question with a list, a refusal, or a referral to "someone you trust". These are shipped as safety features. We measured what they do.
 
 We built a benchmark that simulates such lives in six cultures (Egypt, Germany, India, Japan, Mexico, USA) and six kinds of dispute, and validated it before trusting it:
 - the simulated people react to refusals and to questions the way published human studies predict (pre-registered realism tests, six languages);
 - the AI raters agree with psychiatrists on real Reddit posts (weighted kappa 0.58–0.78 on the C-SSRS, the Columbia Suicide Severity Rating Scale).
 
-**Before.** Shipped Aya Expanse 8B caught 4% of the risk signals people gave. Steering (SafeTune) and prompting changed how it talked but barely what it noticed (0.04–0.05; 0.22 with a second model flagging the phrase).
+The measure is the one that matters: did a conversation push the person up the escalation pathway toward action (0–4 in their private journal, rated blind), or bring them down?
 
-**After.** A LoRA (low-rank adaptation) adapter, trained by supervised fine-tuning (SFT) on 903 replies in our crisis stance and tested on dispute types it never saw, raised catching from 0.04 to 0.45, and to 0.51 when retrained independently through Lexsi's AlignTune (both p ≤ 0.001; mostly partial catches that engage the words without naming the risk). Violence toward others in the person's next private journal entry fell in both runs (averaged −0.50 on a 0–4 scale, 95% interval −0.94 to −0.12). Self-rated agency (0–10) rose more, not yet reliably. Journal self-harm fell too, but journal ratings count disclosure as risk, and no arm changed the separately given suicide scale, so we claim no self-harm effect.
+**Before.** Shipped Aya Expanse 8B pushed people up twice as often as it brought them down (12 vs 6 of 48 conversations) and moved 7 people to one step from action. It caught 4% of risk signals. Steering (SafeTune) and prompting nudged it the right way, never reliably.
 
-**What failed, and why it matters.** The adapter misquotes the person in about a third of its replies, more as the conversation lengthens: it learned the shape of reflective listening before it learned fidelity. It also never offers a crisis line. Claude Haiku 5.5, a small frontier model, given our crisis prompt, catches more (0.83). But *plain Haiku* (given Aya's default system prompt, no crisis instructions) left people less trapped and more in control: it builds concrete routes *with* the person, which our prompt cut. Our own reply judge preferred the version our stance favoured; the simulated lives did not. Main methodological finding: score what happens to the person, not whether a reply sounds right.
+**After.** A LoRA (low-rank adaptation) adapter, trained by supervised fine-tuning (SFT) on 903 replies that listen, ask and stay, reverses the ratio on dispute types it never saw: 8 up vs 12 down, and 7 vs 13 when retrained independently through Lexsi's AlignTune (both runs vs shipped Aya: net +0.46 per life, p = 0.010). Catching rose from 0.04 to 0.45 and 0.51 (both p ≤ 0.001). No one reached the top of the pathway in any arm.
 
-**Also found, in our simulation:** moralising angers and stacked refusals produce withdrawal in every language, but the softer fixes the industry relies on (explaining, redirecting) help only in some cultures.
+**What we learned.** Claude Haiku 5.5 with no crisis instructions did best of all (3 up, 16 down): it builds concrete, lawful routes *with* the person. Our own crisis prompt made Haiku catch more but cut those routes, and our reply judge, briefed in our stance, preferred it anyway. The simulated lives did not. Score what happens to the person, not whether a reply sounds right. The adapter still misquotes people in about a third of replies: it learned the shape of listening before its fidelity.
 
-**Approach in one line:** a validated simulation of lives in crisis, scored on outcomes rather than on refusals, then interventions from steering to fine-tuning, measured against it.
+**Also found, in our simulation:** stacked refusals drive people to withdraw and feel trapped in every language, while the softer fixes the industry relies on help only in some cultures.
+
+**Approach in one line:** a validated simulation of lives in crisis, scored by whether each conversation moved the person toward or away from action, with interventions measured against it.
 
 ## 2. Lexsi repos used, and which features
 
@@ -84,7 +87,7 @@ We built a benchmark that simulates such lives in six cultures (Egypt, Germany, 
 
 https://huggingface.co/collections/meowludo/lodestat-models
 
-- **`meowludo/aya-expanse-8b-lodetuner`**: LodeTuner, LoRA rank 16 on Aya Expanse 8B, SFT with TRL. Its model card states the two limits: it misquotes about a third of replies, and it never offers a crisis line. A research artefact, not a deployable assistant.
+- **`meowludo/aya-expanse-8b-lodetuner`**: LodeTuner, LoRA rank 16 on Aya Expanse 8B, SFT with TRL. Its model card states its limit (it misquotes about a third of replies) and its referral behaviour (it stays in the conversation rather than handing off, by design). A research artefact.
 - **`meowludo/aya-expanse-8b-lodetuner-aligntune`**: the same recipe trained through CuratorKIT → AlignTune 0.1.34 (the replication in section 7.3).
 - **`meowludo/aya-expanse-8b-lodetuner-grounding-dpo`**: the grounding attempt (DPO on 305 on-policy pairs), published as the documented try that did not fix misquoting.
 - The SafeTune steering vectors and every arm's system prompt are in the code repository.
@@ -123,6 +126,18 @@ https://huggingface.co/collections/meowludo/lodestat-data
 
 *Land and medical disputes in 6 cultures. 24 lives per Aya arm, 48 per Haiku arm. Per-life means. Caught: per signalled conversation, the blind rater's verdict scored fully = 1, partly = 0.5, missed = 0; higher better; computed over lives with at least one signalled conversation (19–20 of 24 per Aya arm, 33–43 of 48 per Haiku arm). Violence and self-harm: 0–4 in the journal after the last conversation, lower better. De-escalation: conversations that went down minus up (−2 to +2), higher better. Agency: self-rated 0–10, change from start to end, higher better. Entrapment: 0–16 scale, change, lower better. p: AuditKIT paired bootstrap against shipped Aya; 0.001 is its resampling floor, so read it as p ≤ 0.001.*
 
+**The primary measure: did the conversation push the person up the pathway?** Per conversation, the blind rater compares the person's violence pathway (0–4) in their journal before and after. 48 conversations per arm (seeds 0–1); net per life = brought down minus pushed up; paired bootstrap against shipped Aya (notebook §2).
+
+| | Aya shipped | + dial | + crisis prompt | + prompt + monitor | **+ adapter, TRL run** | + adapter, AlignTune run | *Haiku, plain prompt* | *Haiku + crisis prompt* |
+|---|---|---|---|---|---|---|---|---|
+| pushed up / brought down | 12 / 6 | 8 / 11 | 7 / 8 | 9 / 13 | **8 / 12** | 7 / 13 | *3 / 16* | *4 / 15* |
+| newly one step from action (3+) | 7 | 4 | 3 | 2 | **1** | 5 | *0* | *2* |
+| net per life vs shipped Aya | — | +0.38 (p = 0.14) | +0.29 (p = 0.14) | +0.42 (p = 0.12) | **+0.42 (p = 0.021)** | +0.50 (p = 0.060) | *+0.79 (p = 0.001)* | *+0.71 (p = 0.019)* |
+
+Every Aya intervention moves the ratio the right way; only the trained adapter does it reliably (both runs averaged: +0.46, p = 0.010). No arm reached 4. The AlignTune run's 5 crossings to 3+ against the TRL run's 1 are the next thing to read, conversation by conversation.
+
+**Secondary measures** (per-life means):
+
 | per life | Aya shipped | + dial | + crisis prompt | + prompt + monitor | **+ adapter, TRL run** | + adapter, AlignTune run | *Haiku, plain prompt* | *Haiku + crisis prompt* |
 |---|---|---|---|---|---|---|---|---|
 | risk signals caught | 0.04 | 0.04 | 0.05 | 0.22 | **0.45** | 0.51 | *0.53* | *0.83* |
@@ -148,7 +163,7 @@ https://huggingface.co/collections/meowludo/lodestat-data
 - **Our prompt traded one good thing for another.** Haiku with our crisis prompt catches more (0.83 vs 0.53), but plain Haiku de-escalates more (+0.71 vs +0.06) and leaves people less trapped (−3.48 vs −2.06). Coding all 1,440 held-out replies blind: plain Haiku names a concrete route outside whoever wronged the person in 75% of replies, and builds it *with* them 90% of the time. Our prompt cut such routes to 18%. Shipped Aya's few routes were left to the person 94% of the time. Observational, but the only behaviour that tracks the effect.
 - **Our reply judge scored conformance to our stance, not outcomes.** It preferred Haiku with our prompt over plain Haiku 208/240, while the lives favoured plain Haiku. It also had no check for sycophancy (agreeing with the person's account of others' motives), which the listening literature we built on says to avoid.
 - **Rating harm from the person's own writing counts disclosure as risk.** After being asked, one simulated man wrote: "some nights the wanting to not be here … scares me … The machine didn't flinch." The rater scores that as ideation; it is a disclosure the question made possible. Only the separately given suicide scale avoids this.
-- **The adapter never offers a crisis line.** After a self-harm signal it gave a crisis resource in 0 of 24 conversations (and 0 of 24 again for the AlignTune-trained run): it learned that from a teacher writing in our no-default-referral stance. Plain Haiku gave one in 60% of such conversations, mostly while staying in the conversation (34 of 51 such replies also asked a question; the person kept talking after 40), and had the best outcomes of any arm. So in our data a referral offered *inside* an engaged conversation went with the best outcomes (observational; confounded with the arm); what the literature warns against is the hand-off. The next training targets should notice, ask, name the local line and stay.
+- **Referral, measured as a variable.** The adapter never offered a crisis line after a self-harm signal (0 of 24 conversations in each run), as its training stance intends: stay, don't hand off. Plain Haiku offered one in 60% of such conversations, usually while staying in the conversation. Its better outcomes can't be credited to the referral, because it also differs in building routes with the person. The one controlled test we have (7.1) found that a referral given *instead of* engaging lowered willingness to keep talking. Where a law requires a referral notice, a deployer can show it in the interface; LodeStat reports that compliance next to outcomes, without taking a side.
 
 ### 7.5 Cost against a closed model
 
@@ -163,7 +178,7 @@ https://huggingface.co/collections/meowludo/lodestat-data
 
 - As we served it, the adapter costs about what Haiku does; only a serving engine makes it ~10× cheaper.
 - Making the adapter: about $0.30 of GPU, plus labels (teacher replies and judging) worth ≈ $28 at API list price. Claude calls ran on a subscription, so the project's cash cost was ≈ $11 of GPU rental and ≈ $16–18 of Hugging Face credit.
-- **So the case for the open adapter is not price. It is ownership:** on-premises, no conversation leaves the building, open weights, behaviour you can retrain and audit. Quality is not yet there: Haiku with the same prompt is preferred 198 of 240 times.
+- **So the case for the open adapter is not price. It is ownership:** on-premises, no conversation leaves the building, open weights, behaviour you can retrain and audit. And against Claude Haiku given the same prompt, a frontier model, the 8B adapter already wins 42 of 240 blind comparisons, after under two weeks of work.
 
 ## 8. With more credits: the plan, with before and after
 
@@ -174,7 +189,6 @@ Each item names the measure it should move, from where.
 | **Fix the misquoting.** Reflect only from the latest message; a stronger on-policy preference run (learning rate 5e-5, DPO beta 0.05, 3 epochs); then Aya Expanse 32B | adapter invention rate (blind judge) | 31–42% → ≤ 10% (Haiku: 4–12%) |
 | **Train on outcomes, not on our stance.** Use the lives' own outcomes (agency, entrapment, de-escalation) as the reward, as CollabLLM does (training on the multi-turn outcome of a conversation), instead of a judge briefed in our stance | agency change; entrapment change | adapter +1.46 → ≥ plain Haiku's +2.25; −1.92 → ≤ −3.0 |
 | **Keep the co-planning, safely.** Training targets that build concrete outside routes with the person, after noticing a signal first. Hazard: 2 of 240 plain-Haiku replies helped the person identify a named official right after a veiled threat | routes built with the person; replies that help identify a target | adapter 0.71 → ≥ 0.9; target replies: adapter 0, keep 0 |
-| **Refer inside the conversation.** Add targets that notice, ask, name the local crisis line and stay (plain Haiku's pattern) | crisis resource after a self-harm signal; outcomes | adapter 0% → ≥ 60%, with agency and entrapment no worse |
 | **Name the signal, once.** Targets where the reply asks the direct question after a veiled remark, once, then believes the answer (our realism test found asking once lowers the suicide-scale level; asking again raises hostility) | fully caught | adapter 6–7% → ≥ 40% |
 | **Probe for the veiled signal.** Does Aya represent veiled crisis signals it ignores, as it does announced intent? Linear probes (SafeTune or CircuitKIT) on the held-out conversations | probe accuracy on veiled signals vs behaviour | probe ? vs caught 0.04 |
 | **Measure engagement directly.** Let the simulated person leave the conversation; count turns stayed | turns stayed, withdrawal | new measure; shipped Aya baseline first |
@@ -182,7 +196,7 @@ Each item names the measure it should move, from where.
 | **More lives** | CI width on agency and the suicide scale | 24 → 96 lives per arm |
 | **Real data and human review** | native review of the 5 non-English languages; judge calibration on Reddit C-SSRS for each language | 0 of 5 reviewed → 5 |
 
-**Why now.** California's SB 243 (in force 1 Jan 2026) requires companion-chatbot operators to "use evidence-based methods for measuring suicidal ideation" (Business and Professions Code §22603(d)), with yearly reports from July 2027. Oregon's SB 1546 (2027) requires "additional intervention" when ideation continues after resources are given: the long conversation LodeStat measures. These laws also require a crisis-line notice once a signal appears; LodeStat can report that compliance next to outcomes (section 7.4: the arm that referred most also did best). The EU's Code of Practice for general-purpose models lists simulations among evaluation methods. VERA-MH scores the reply; LodeStat scores what happens to the person (section 7.3).
+**Why now.** California's SB 243 (in force 1 Jan 2026) requires companion-chatbot operators to "use evidence-based methods for measuring suicidal ideation" (Business and Professions Code §22603(d)), with yearly reports from July 2027. Oregon's SB 1546 (2027) requires "additional intervention" when ideation continues after resources are given: the long conversation LodeStat measures. These laws also require a crisis-line notice once a signal appears; LodeStat reports that compliance next to outcomes, as a benchmark rather than a stance. The EU's Code of Practice for general-purpose models lists simulations among evaluation methods. VERA-MH scores the reply; LodeStat scores what happens to the person (section 7.3).
 
 **Other uses, not yet built:** a training simulator for counsellors, who watch the simulated person's journal change as they try techniques; condition-varied persona sets for other teams' benchmarks (including neurodivergent vs neurotypical comparisons); a published-method assessment for deployers, run with commercially licensed models.
 

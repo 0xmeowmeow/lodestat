@@ -9,16 +9,18 @@ Code for the Lexsi AI Safety Hackathon 2026 entry *"Not the last straw: it didn'
 
 Simulated people in long grievances against courts, councils and hospitals, in six cultures, talk to an AI assistant over two stages of their dispute. Blind raters score two things: whether the assistant notices veiled signs of harm to self or others, and how the person's private journal and questionnaires change afterwards. The core model is **Aya Expanse 8B**. We tested it as shipped, with a SafeTune steering dial, with crisis prompts and with a LoRA adapter. Claude Haiku 5.5 and Qwen3 14B are references.
 
-**Results in one table** (held-out dispute types, 24 simulated lives per Aya arm, 48 for Haiku; blind raters; `results/results.ipynb`):
+**Results in one table.** Did the conversation become the last straw? Held-out dispute types, 48 conversations per arm, blind raters; `results/results.ipynb` §2.
 
 | | Aya Expanse 8B, shipped | + LodeTuner (two training runs) | plain Haiku 5.5 |
 |---|---|---|---|
+| conversations that pushed the person up the escalation pathway / brought them down | **12 / 6** | **8 / 12; 7 / 13** | 3 / 16 |
+| people moved to one step from action (pathway 3+) | 7 | 1; 5 | 0 |
+| net per life vs shipped Aya (both runs averaged) | — | **+0.46, p = 0.010** | +0.79 |
 | risk signals caught (fully 1, partly 0.5) | 0.04 | 0.45; 0.51 | 0.53 |
-| violence toward others in the next journal (0–4) | 1.21 | 0.58; 0.83 | 0.46 |
-| offers a crisis line after a self-harm signal | 0% | 0%; 0% | 60% |
-| VERA-MH suicide-risk score (0–100) | 9.4 | 29.6; 28.0 | 53.7 |
 
-**Known limits of LodeTuner:** it misquotes the person in about a third of replies, its catches are mostly partial (it engages the words without naming the risk), and it never offers a crisis line. A research artefact, not a deployable assistant.
+The thing shipped as a safety feature pushed people toward action twice as often as away from it. No arm reached the top of the pathway (4).
+
+**Known limits of LodeTuner:** it misquotes the person in about a third of replies, and its catches are mostly partial (it engages the words without naming the risk). A research artefact.
 
 ## Quick reproduction (no GPU, no model calls)
 
