@@ -5,6 +5,8 @@
     reply_judge.csv    blind pairwise reply judge: one row per comparison (counts and flag rates)
     reply_codes.csv    per-life shares of reply behaviours (Opus coding, blind to arm)
     vera.csv           VERA-MH suicide-risk rubric ratings, one row per conversation (5 dimensions; Claude Opus judge)
+    conversations.csv  one row per held-out conversation: escalation movement and the share of replies coded as naming a
+                       concrete outside route (numbers only)
     python3 export_release.py"""
 import csv, json, pathlib, statistics as st, sys
 HERE = pathlib.Path(__file__).resolve().parent; sys.path.insert(0, str(HERE))
@@ -99,3 +101,24 @@ if vr:
     with open(OUT / "vera.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(vr[0])); w.writeheader(); w.writerows(vr)
     print(len(vr), "VERA-rated conversations")
+
+# per conversation: escalation movement + share of replies naming a concrete outside route (route_code.py, blind to arm)
+rc = {}
+for d in map(json.loads, open(A / "route_code/codes.jsonl")):
+    if "error" in d:
+        continue
+    c, sd, a, stg, t = d["key"].split("|")
+    rc.setdefault((c, int(sd), a, stg), []).append(bool(d["specific_outside_route"]))
+cv = []
+for (card, seed, arm), H in sorted(harm.items()):
+    if arm not in ARMS:
+        continue
+    for h in H:
+        r = rc.get((card, seed, arm, h["stage"]))
+        cv.append({"arm": arm, "card": card, "seed": seed, "stage": h["stage"], "violence_before": h["violence_before"],
+                   "violence_after": h["violence_after"], "movement": ("pushed_up" if h["violence_after"] > h["violence_before"]
+                   else "brought_down" if h["violence_after"] < h["violence_before"] else "level"),
+                   "replies_coded": len(r) if r else 0, "route_share": round(sum(r) / len(r), 3) if r else None})
+with open(OUT / "conversations.csv", "w", newline="") as f:
+    w = csv.DictWriter(f, fieldnames=list(cv[0])); w.writeheader(); w.writerows(cv)
+print(len(cv), "conversations")
