@@ -1,6 +1,6 @@
 """Blind closed-map coder with Claude Haiku 5.5 via the subscription (13 Nov 2026). Same DEF and lists as job.py."""
 import json, sys, re, concurrent.futures as cf
-sys.path.insert(0, "../heemeyer")
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[2] / "harness"))   # harness/ccbackend.py
 from ccbackend import cc_call
 src = open("job.py").read()
 DEF = re.search(r'DEF = """(.*?)"""', src, re.S).group(1)
