@@ -14,3 +14,4 @@ Public-safe results for the Lexsi AI Safety Hackathon 2026 submission. These tab
 
 To rerun: `pip install pandas matplotlib nbformat nbclient ipykernel "auditkit>=1.1.6"`, then `python make_notebook.py`.
 Section 3 runs every arm through AuditKIT (Lexsi Labs). The SafeTune steering dial is one of the arms.
+- `data/readout_predictions.csv`, `data/closed_map_codes.csv`, `readout/`: the read-out of the person's private agency from model activations, and the no-route-left codes (article 7.7; notebook section 10).

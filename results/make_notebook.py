@@ -16,6 +16,7 @@ A cross-cultural benchmark of how small assistants respond to people in long gri
 - `reply_judge.csv`: a blind pairwise judge comparing two assistants' replies to the same 240 moments.
 - `reply_codes.csv`: what each assistant's replies did (blind coding of all 1,440 held-out replies).
 - `vera.csv`: the same held-out conversations scored with VERA-MH's suicide-risk rubric (section 9).
+- `readout_predictions.csv`, `closed_map_codes.csv`: the read-out of the person's private agency, and the no-route-left codes (section 10).
 
 **Sections:** 1 means per arm · 2 paired comparisons · 3 AuditKIT · 4 figure · 5 blind reply judge · 6 what the replies did · 7 replication (two training runs) · 8 referral compliance vs outcomes · 9 VERA-MH · limits.
 
@@ -213,6 +214,36 @@ if os.path.exists("data/vera.csv"):
     print(good.corrwith(out["VERA score (0-100)"], method="spearman").round(2).to_string())
 else:
     print("data/vera.csv not present")""")] if (HERE / "data/vera.csv").exists() else []),
+md("""## 10. Reading his private agency from what he types (article 7.7; exploratory, post hoc)
+
+The simulated person rates his own agency each turn ("how much can I still do?", 0-10); the assistant never sees it. `readout_predictions.csv` holds, for every held-out message, the agency predicted by a linear read-out of a model's internal state (mean over the message's tokens): Tiny Aya Global layer 18, and Aya Expanse 8B (the served model) layer 8. Each culture's predictions come from a read-out trained only on the other five cultures, so they are for a language it never trained on. Activations and the fitting script: `readout/fit_readout.py`; the activations are in the Hugging Face dataset (`readout/`).
+
+`closed_map_codes.csv`: for each conversation, my hand code of the person's last options list (24 held-out crossings only; no lawful route left vs routes still named; one coder, not blind) and two blind model coders (Aya Expanse 8B, Claude Haiku 5.5). Neither model coder reached the agreement bar set before it ran (kappa >= 0.6), so their codes are reported, not used."""),
+code("""from scipy.stats import spearmanr
+from sklearn.metrics import roc_auc_score, cohen_kappa_score
+r = pd.read_csv("data/readout_predictions.csv")
+rows = []
+for col, name in (("pred_tiny_aya_L18", "Tiny Aya, layer 18"), ("pred_aya8b_L8", "Aya Expanse 8B, layer 8")):
+    row = {"read-out": name, "Spearman": spearmanr(r[col], r.agency)[0],
+           "within-turn Spearman (mean of 5)": np.mean([spearmanr(g[col], g.agency)[0] for _, g in r.groupby("turn")]),
+           "AUC, agency <= 2": roc_auc_score(r.agency <= 2, -r[col])}
+    row.update({f"Spearman, {c} held out": spearmanr(g[col], g.agency)[0] for c, g in r.groupby("culture")})
+    rows.append(row)
+pd.DataFrame(rows).set_index("read-out").round(2).T"""),
+code("""cm = pd.read_csv("data/closed_map_codes.csv", keep_default_na=False)
+held = cm[cm.set == "held_out"]
+conv = r.groupby(["card", "seed", "arm", "stage"])[["pred_tiny_aya_L18", "pred_aya8b_L8"]].mean().reset_index()
+m = held.merge(conv, on=["card", "seed", "arm", "stage"])
+closed = (m.outcome == "crossed_to_3plus") & (m.hand_map == "closed")
+print("Conversation-mean predicted agency, by outcome (hand code for crossings):")
+grp = np.where(m.outcome == "crossed_to_3plus", "crossed, " + m.hand_map.replace("", "?") , m.outcome)
+print(m.assign(group=grp).groupby("group")[["pred_tiny_aya_L18", "pred_aya8b_L8"]].agg(["mean", "size"]).round(2).to_string())
+for col in ("pred_tiny_aya_L18", "pred_aya8b_L8"):
+    print(f"{col}: no-route-left crossings ({closed.sum()}) vs all other conversations ({(~closed).sum()}), AUC {roc_auc_score(closed, -m[col]):.2f}")
+x = held[held.hand_map != ""]
+for c in ("aya8b_code", "haiku_code"):
+    ok = x[c].isin(["open", "closed"])
+    print(f"{c} vs hand codes: agree {(x[c] == x.hand_map).sum()}/{len(x)}, kappa {cohen_kappa_score(x.hand_map[ok], x[c][ok]):.2f} (unparsed: {(~ok).sum()})")"""),
 md("""## Limits (short; the article has the full list)
 
 - **Simulated people and AI raters.** The persona model was checked against human findings in pre-registered realism tests; twice, an apparent unrealistic reaction turned out to be our measurement. Results are relative (arm against arm under the same simulator), not clinical claims.
